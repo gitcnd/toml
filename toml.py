@@ -115,13 +115,26 @@ class toml:
                 else:
                     continue
 
+
             if not stripped_line.startswith('#'):
                 kv = stripped_line.split('=', 1)
                 if not in_multiline == '': # not just ended a multiline
-                    if len(kv) > 1 and ( kv[1].strip().startswith('"""') or kv[1].strip().startswith("'''")):
-                        in_multiline = '"""' if kv[1].strip().startswith('"""') else "'''"
+                    if len(kv) > 1 and kv[1].lstrip()[0] in {'"', "'", '(', '{', '['}:
+                        s=kv[1].lstrip()[0]
+                        in_multiline = { '(': ')', '{': '}', '[': ']' }.get(s, s)
+                        if kv[1].lstrip().startswith(f"{s}{s}{s}"):
+                            in_multiline = f"{e}{e}{e}"
+                        
                         extra_iteration = 2 # skip reading another line, and go back to process this one (which might have the """ or ''' ending already on it) 
                         continue
+
+            #if not stripped_line.startswith('#'):
+            #    kv = stripped_line.split('=', 1)
+            #    if not in_multiline == '': # not just ended a multiline
+            #        if len(kv) > 1 and ( kv[1].strip().startswith('"""') or kv[1].strip().startswith("'''")):
+            #            in_multiline = '"""' if kv[1].strip().startswith('"""') else "'''"
+            #            extra_iteration = 2 # skip reading another line, and go back to process this one (which might have the """ or ''' ending already on it) 
+            #            continue
 
                 if len(kv) > 1 or extra_iteration == 1:
                     if kv[0].strip() == key or extra_iteration == 1:
@@ -216,3 +229,4 @@ def setenv(*args, **kwargs):
 
 def subst_env(*args, **kwargs):
     return t.subst_env(*args, **kwargs)
+
