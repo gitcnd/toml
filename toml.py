@@ -75,6 +75,19 @@ class toml:
                     print("{}: target '{}' is not a directory".format(cmd, target))  # {}: target '{}' is not a directory
     
 
+    def _strip_cmt(self, line):
+        quote_char = None
+        for i, char in enumerate(line):
+            if char in ('"', "'"):
+                if quote_char is None:
+                    quote_char = char
+                elif quote_char == char and (i == 0 or line[i-1] != '\\'):
+                    quote_char = None
+            elif char == '#' and quote_char is None:
+                return line[:i].strip()
+        return line.strip()
+
+
     def _rw_toml(self, op, file, key, value=None, default=None):
         tmp = file.rsplit('.', 1)[0] + "_new." + file.rsplit('.', 1)[1] # /settings_new.toml
         old = file.rsplit('.', 1)[0] + "_old." + file.rsplit('.', 1)[1] # /settings_old.toml
@@ -107,7 +120,8 @@ class toml:
 
             line += iline
             iline = ''
-            stripped_line = line.strip()
+            stripped_line = self._strip_cmt(line) # aggressively remove comments too
+
 
             if in_multiline:
                 if stripped_line.endswith( in_multiline ) and not stripped_line.endswith(f'\\{in_multiline}'):
@@ -230,3 +244,7 @@ def setenv(*args, **kwargs):
 def subst_env(*args, **kwargs):
     return t.subst_env(*args, **kwargs)
 
+
+#r=t.getenv('foo')
+#print(r)
+#print(r[0])
