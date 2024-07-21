@@ -6,10 +6,12 @@ __version__ = '1.0.20240707'  # Major.Minor.Patch
 # read and write .toml files for MicroPython and CircuitPython.  see also: https://github.com/gitcnd/mpy_self
 # 
 #  import toml
+#
+#  toml.setenv("key","value") # put None for value to delete the key. # accepts default= file=
+#
 #  toml.getenv("key") # defaults to /settings.toml
 #  toml.getenv("key",file="/my_file.toml",default="value to use if key not found")
-#  toml.setenv("key","value") # put None for value to delete the key. # accepts default= file=
-
+#
 #  toml.subst_env("Put a $key in a string") # accepts default= file== and ${key} syntax
 
 import os
@@ -244,7 +246,5 @@ def setenv(*args, **kwargs):
 def subst_env(*args, **kwargs):
     return t.subst_env(*args, **kwargs)
 
-
-#r=t.getenv('foo')
-#print(r)
-#print(r[0])
+# import toml
+# toml.getenv('USER')
