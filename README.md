@@ -4,15 +4,19 @@ Read and write .toml files. works in MicroPython and CircuitPython
 ## Usage:
 ```
 import toml
-toml.getenv("key") # defaults to /settings.toml file
+
+toml.getenv("key") # defaults to ./settings.toml file
 toml.getenv("key",file="/my_file.toml",default="value to use if key not found")
+toml.getenv("WIFI",cache=True,subst=True) # replace any $VARIABLES found inside the key (e.g. welcome="Hi from $HOSTNAME >>>" etc)
+
 toml.setenv("key","value") # put None for value to delete the key. # accepts file=
+toml.subst_env("Put a $key in a string") # accepts default= file== and ${key} syntax
 ```
 ## Features/Drawbacks
 
-Makes backups before overwriting when changing/adding new toml values (adds _old to the end of the filename)
-Can handle multi-line strings and escape characters etc
-Only handles basic formatting of numbers, strings (does do multi-line), dict, list, and tuples *uses json to load/save the latter 3)
+*. Makes backups before overwriting when changing/adding new toml values (adds _old to the end of the filename)
+*. Can handle multi-line strings and escape characters etc
+*. Only handles basic formatting of numbers, strings (does do multi-line), dict, list, and tuples *uses json to load/save the latter 3)
 
 ## How to install
 
