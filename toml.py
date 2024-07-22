@@ -1,6 +1,6 @@
 # toml.py
 
-__version__ = '1.0.20240707'  # Major.Minor.Patch
+__version__ = '1.0.20240722'  # Major.Minor.Patch
 
 # Created by Chris Drake.
 # read and write .toml files for MicroPython and CircuitPython.  see also: https://github.com/gitcnd/mpy_self
@@ -11,6 +11,7 @@ __version__ = '1.0.20240707'  # Major.Minor.Patch
 #
 #  toml.getenv("key") # defaults to /settings.toml
 #  toml.getenv("key",file="/my_file.toml",default="value to use if key not found")
+#  toml.getenv("WIFI",cache=True,subst=True) # replace any $VARIABLES found inside the key (e.g. welcome="Hi from $HOSTNAME >>>" etc)
 #
 #  toml.subst_env("Put a $key in a string") # accepts default= file== and ${key} syntax
 
@@ -19,7 +20,7 @@ import os
 class toml:
     def __init__(self,cio=None):
         self.settings_file = "./settings.toml"
-
+        self._cache = {}
 
     def _extr(self,value_str):
         value_str = value_str.strip()
@@ -90,7 +91,7 @@ class toml:
         return line.strip()
 
 
-    def _rw_toml(self, op, file, key, value=None, default=None):
+    def _rw_toml(self, op, file, key, value=None, default=None, subst=False):
         tmp = file.rsplit('.', 1)[0] + "_new." + file.rsplit('.', 1)[1] # /settings_new.toml
         old = file.rsplit('.', 1)[0] + "_old." + file.rsplit('.', 1)[1] # /settings_old.toml
 
@@ -157,6 +158,8 @@ class toml:
 
                         if op != 'w':
                             ret= self._extr(kv[1]).replace("\\u001b", "\u001b") if len(kv) > 1 else None # convert "\x1b[" to esc[ below
+                            if subst:
+                                ret=self.subst_env(ret, dflt=None, cache=True)
                             if ret is not None and ret[0] in '[{(':
                                 import json
                                 ret=json.loads(ret)
@@ -190,7 +193,7 @@ class toml:
             self.mv({'sw': {}, 'args': ['mv', tmp, file]})
     
 
-    def subst_env(self, value, dflt=None):
+    def subst_env(self, value, dflt=None, cache=False):
         result = ''
         i = 0
         while i < len(value):
@@ -199,7 +202,7 @@ class toml:
                 i += 2
             elif value[i] == '$':
                 i += 1
-                i, expanded = self.exp_env(i,value)
+                i, expanded = self.exp_env(i,value,cache)
                 result += expanded
             else:
                 result += value[i]
@@ -207,7 +210,7 @@ class toml:
         return result
 
 
-    def exp_env(self,start,value):
+    def exp_env(self,start,value,cache=False):
         if value[start] == '{':
             end = value.find('}', start)
             var_name = value[start + 1:end]
@@ -226,13 +229,19 @@ class toml:
             return end, var_value
 
     
-    def getenv(self, key, dflt=None, file=None):
-        return self._rw_toml('r', file or self.settings_file, key) or dflt
+    def getenv(self, key, dflt=None, file=None, cache=False, subst=False):
+        if cache and key in self._cache:
+            return self._cache[key]
+        ret=self._rw_toml('r', file or self.settings_file, key, subst=subst) or dflt
+        if cache:
+           self._cache[key] = ret
+        return ret
 
 
-    #def setenv(self, cmdenv):
-    def setenv(self, key, value=None, file=None):
-        self._rw_toml('w', file or self.settings_file, key, value)
+    def setenv(self, key, value=None, file=None, cache=False, subst=False):
+        self._rw_toml('w', file or self.settings_file, key, value=value, subst=subst)
+        if cache:
+           self._cache[key] = value
 
 
 t = toml()
