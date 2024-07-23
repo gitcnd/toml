@@ -157,10 +157,12 @@ class toml:
                     if kv[0].strip() == key or extra_iteration == 1:
 
                         if op != 'w':
-                            ret= self._extr(kv[1]).replace("\\u001b", "\u001b") if len(kv) > 1 else None # convert "\x1b[" to esc[ below
+                            if not len(kv) > 1:
+                                return None
+                            ret= ''.join(chr(int(part[:2], 16)) + part[2:] if i > 0 else part for i, part in enumerate(self._extr(kv[1]).split("\\x"))) # expand escape chars etc
                             if subst:
                                 ret=self.subst_env(ret, dflt=None, cache=True)
-                            if ret is not None and ret[0] in '[{(':
+                            if ret[0] in '[{(':
                                 import json
                                 ret=json.loads(ret)
                             return ret
@@ -215,17 +217,17 @@ class toml:
             end = value.find('}', start)
             var_name = value[start + 1:end]
             if var_name.startswith('!'):
-                var_name = self.getenv(var_name[1:], f'${{{var_name}}}')
-                var_value = self.getenv(var_name, f'${{{var_name}}}')
+                var_name = self.getenv(var_name[1:], f'${{{var_name}}}', cache=cache)
+                var_value = self.getenv(var_name, f'${{{var_name}}}', cache=cache)
             else:
-                var_value = self.getenv(var_name, f'${{{var_name}}}')
+                var_value = self.getenv(var_name, f'${{{var_name}}}', cache=cache)
             return end + 1, var_value
         else:
             end = start
             while end < len(value) and (value[end].isalpha() or value[end].isdigit() or value[end] == '_'):
                 end += 1
             var_name = value[start:end]
-            var_value = self.getenv(var_name, f'${var_name}')
+            var_value = self.getenv(var_name, f'${var_name}', cache=cache)
             return end, var_value
 
     
