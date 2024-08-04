@@ -1,6 +1,6 @@
 # toml.py
 
-__version__ = '1.0.20240722'  # Major.Minor.Patch
+__version__ = '1.0.20240723'  # Major.Minor.Patch
 
 # Created by Chris Drake.
 # read and write .toml files for MicroPython and CircuitPython.  see also: https://github.com/gitcnd/mpy_self
@@ -19,7 +19,7 @@ import os
 
 class toml:
     def __init__(self,cio=None):
-        self.settings_file = "./settings.toml"
+        self.settings_file = "/settings.toml"
         self._cache = {}
 
     def _extr(self,value_str):
@@ -130,6 +130,7 @@ class toml:
                 if stripped_line.endswith( in_multiline ) and not stripped_line.endswith(f'\\{in_multiline}'):
                     in_multiline = '' # tell it not to re-check next
                 else:
+                    line=stripped_line
                     continue
 
 
