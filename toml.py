@@ -1,6 +1,6 @@
 # toml.py
 
-__version__ = '1.0.20240723'  # Major.Minor.Patch
+__version__ = '1.0.20240805'  # Major.Minor.Patch
 
 # Created by Chris Drake.
 # read and write .toml files for MicroPython and CircuitPython.  see also: https://github.com/gitcnd/mpy_self
@@ -106,7 +106,7 @@ class toml:
 
         outfile = open(tmp, 'w') if op == "w" else None
     
-        in_multiline = False
+        in_multiline = []
         extra_iteration = 0
         line = ''
 
@@ -121,14 +121,17 @@ class toml:
             else:
                 break
 
+            #print(f"cnd: iline={iline}. in_multiline={in_multiline}")
             line += iline
             iline = ''
             stripped_line = self._strip_cmt(line) # aggressively remove comments too
 
 
             if in_multiline:
-                if stripped_line.endswith( in_multiline ) and not stripped_line.endswith(f'\\{in_multiline}'):
-                    in_multiline = '' # tell it not to re-check next
+                #print(f"cnd: wtf in_multiline={in_multiline}")
+                if stripped_line.endswith( in_multiline[-1] ) and not stripped_line.endswith(f'\\{in_multiline[-1]}'):
+                    #print(f"cnd: wtf2 in_multiline={in_multiline}")
+                    in_multiline[-1] = '' # tell it not to re-check next
                 else:
                     line=stripped_line
                     continue
@@ -136,12 +139,16 @@ class toml:
 
             if not stripped_line.startswith('#'):
                 kv = stripped_line.split('=', 1)
-                if not in_multiline == '': # not just ended a multiline
+                if in_multiline and in_multiline[-1] == '': # just ended a multiline
+                    #print(f"cnd: predel in_multiline={in_multiline}")
+                    del in_multiline[-1]
+                else: # not just ended a multiline
                     if len(kv) > 1 and kv[1].lstrip()[0] in {'"', "'", '(', '{', '['}:
                         s=kv[1].lstrip()[0]
-                        in_multiline = { '(': ')', '{': '}', '[': ']' }.get(s, s)
+                        in_multiline.append( { '(': ')', '{': '}', '[': ']' }.get(s, s) )
+                        #print(f"cnd: new in_multiline={in_multiline}")
                         if kv[1].lstrip().startswith(f"{s}{s}{s}"):
-                            in_multiline = f"{e}{e}{e}"
+                            in_multiline[-1] = f"{e}{e}{e}"
                         
                         extra_iteration = 2 # skip reading another line, and go back to process this one (which might have the """ or ''' ending already on it) 
                         continue
@@ -165,6 +172,7 @@ class toml:
                                 ret=self.subst_env(ret, dflt=None, cache=True)
                             if ret[0] in '[{(':
                                 import json
+                                #print(f"cnd: ret={ret}")
                                 ret=json.loads(ret)
                             return ret
 
@@ -182,7 +190,7 @@ class toml:
                                 line = '{} = "{}"\n'.format(key, value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\t", "\\t")) 
                             key=None
 
-            in_multiline = False
+            #in_multiline = False
             if outfile:
                 outfile.write(line)
             line=''
