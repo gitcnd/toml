@@ -12,6 +12,8 @@ toml.getenv("WIFI",cache=True,subst=True) # replace any $VARIABLES found inside 
 
 toml.setenv("key","value") # put None for value to delete the key. # accepts file=
 toml.subst_env("Put a $key in a string") # accepts default= file== and ${key} syntax
+
+HOSTNAME, GRN, YEL, NORM, BLU, WHT, LED, LEDINV, WIFI = toml.getenv(["HOSTNAME","GRN","YEL","NORM","BLU","WHT","LED","LEDINV","WIFI"],subst=True,include=True)  # get lots at once, following any #include files as well
 ```
 Method two (specify your own .toml file)
 ```
