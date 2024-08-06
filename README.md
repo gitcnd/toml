@@ -2,6 +2,7 @@
 Read and write .toml files. works in MicroPython and CircuitPython
 
 ## Usage:
+Method one (defaults to using the file `/settings.toml`):
 ```
 import toml
 
@@ -12,11 +13,23 @@ toml.getenv("WIFI",cache=True,subst=True) # replace any $VARIABLES found inside 
 toml.setenv("key","value") # put None for value to delete the key. # accepts file=
 toml.subst_env("Put a $key in a string") # accepts default= file== and ${key} syntax
 ```
+Method two (specify your own .toml file)
+```
+import toml
+t = toml.toml("my_settings_tst.toml")
+t.getenv("USER")
+t.getenv("WIFI",subst=True)
+t.setenv("PASSWORD","mypass")
+t.subst_env("My password is $PASSWORD !")
+```
+
 ## Features/Drawbacks
 
 *. Makes backups before overwriting when changing/adding new toml values (adds _old to the end of the filename)
 *. Can handle multi-line strings and escape characters etc
 *. Only handles basic formatting of numbers, strings (does do multi-line), dict, list, and tuples *uses json to load/save the latter 3)
+*. Extends the .toml standard by allowing $VARIABLES to be expanded (`subst=True`) 
+*. Allows for `#include otherfile.toml` nested toml files as well (and even `#include $SOMEVAR` if the caller does `subst=True`)
 
 ## How to install
 
@@ -43,3 +56,4 @@ foo = [{"ssid": "mynet0", "channel": 9, "password": "hithere", "hidden": true}, 
 fred = "wilma"
 Esp32cam72:/ mpy$ 
 ```
+
