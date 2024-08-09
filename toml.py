@@ -1,6 +1,6 @@
 # toml.py
 
-__version__ = '1.0.20240805'  # Major.Minor.Patch
+__version__ = '1.0.20240809'  # Major.Minor.Patch
 
 # Created by Chris Drake.
 # read and write .toml files for MicroPython and CircuitPython.  see also: https://github.com/gitcnd/mpy_self
@@ -28,6 +28,7 @@ __version__ = '1.0.20240805'  # Major.Minor.Patch
 #  t.setenv("PASSWORD","mypass")
 #  t.subst_env("My password is $PASSWORD !")
 #
+# Uses  4816 bytes RAM (2.98%)
 
 
 import os
@@ -120,17 +121,17 @@ class toml:
         except OSError:
             if op == 'w':
                 open(file, 'w').close() # create empty one if missing
-                return None
+                return default
 
         outfile = None
         if op == "w":
             tmp = file.rsplit('.', 1)[0] + "_new." + file.rsplit('.', 1)[1] # /settings_new.toml
             outfile = open(tmp, 'w')
     
-        in_multiline = []
         extra_iteration = 0
         line = ''
         sline = ''
+        inside_json = False
 
         while True:
             if extra_iteration < 1:
@@ -145,9 +146,6 @@ class toml:
                         iline = ''  # Trigger the final block execution
                     else:
                         break
-            elif extra_iteration == 2: # multiline shortcut, not an EOF
-                extra_iteration = 0
-                iline = ''
             else:
                 break
 
@@ -156,33 +154,23 @@ class toml:
                 ifile=self._strip_cmt(iline[9:])
                 if subst:
                     ifile=self.subst_env(ifile, default=None)
-                infile.append( open(ifile, 'r') )
+                try:
+                    infile.append( open(ifile, 'r') )
+                except Exception as e:
+                    raise Exception(f"#include {ifile}: {e}")
 
             iline=self._strip_cmt(iline)
             sline += iline # aggressively remove comments too
 
-            if in_multiline:
-                if (( sline.endswith( in_multiline[-1] ) and not sline.endswith(f'\\{in_multiline[-1]}') ) or \
-                    ( sline.endswith( in_multiline[-1] +"," ) and not sline.endswith(f'\\{in_multiline[-1]},') )) \
-                   and (in_multiline[-1] not in ')}]' or not { ')': '(', '}': '{', ']': '[' }.get(in_multiline[-1]) in iline[0:-2]): # iline not sline here
-                    in_multiline[-1] = '' # tell it not to re-check next
-                else:
-                    continue
-
-
             kv = sline.split('=', 1)
-            if in_multiline and in_multiline[-1] == '': # just ended a multiline
-                del in_multiline[-1]
-            else: # not just ended a multiline
-                if len(kv) > 1 and kv[1].lstrip()[0] in {'"', "'", '(', '{', '['}:
-                    s=kv[1].lstrip()[0]
-                    in_multiline.append( { '(': ')', '{': '}', '[': ']' }.get(s, s) )
-                    if kv[1].lstrip().startswith(f"{s}{s}{s}"):
-                        in_multiline[-1] = f"{e}{e}{e}"
-                    
-                    extra_iteration = 2 # skip reading another line, and go back to process this one (which might have the """ or ''' ending already on it) 
-                    continue
 
+            if not inside_json and len(kv)>1 and kv[1].strip()[0] in {'{', '['}:          # ('{' in iline or '[' in iline):
+                inside_json = True
+            if inside_json:
+                if sline.count('{') == sline.count('}') and sline.count('[') == sline.count(']'):
+                    inside_json = False
+            if inside_json:
+                continue
 
             if len(kv) > 1 or extra_iteration == 1: # extra_iteration means "write if not found"
                 kvs=kv[0].strip()
@@ -216,7 +204,6 @@ class toml:
                         key=None
 
 
-            #in_multiline = False
             if outfile:
                 outfile.write(line)
             line=''
@@ -313,4 +300,3 @@ def setenv(*args, **kwargs):
 
 def subst_env(*args, **kwargs):
     return toml.subst(*args, **kwargs)
-
