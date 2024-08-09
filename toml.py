@@ -112,7 +112,7 @@ class toml:
         return line.strip()
 
 
-    def _rw_toml(self, op, file, key, value=None, default=None, subst=False, include=False): # key is [list] (1 elem for set)
+    def _rw_toml(self, op, key, value=None, file=None, default=None, subst=False, include=False): # key is [list] (1 elem for set)
         retd={}
         order=list(key)
 
@@ -131,6 +131,7 @@ class toml:
         extra_iteration = 0
         line = ''
         sline = ''
+        iline = ''
         inside_json = False
 
         while True:
@@ -193,7 +194,7 @@ class toml:
                     elif value == '':
                         line='' # Delete the variable
                         continue
-                    elif key is not None:
+                    elif key is not None and len(key)>0:
                         if isinstance(value,(dict, list, tuple)):
                             import json
                             line = '{} = {}\n'.format(key[0], json.dumps(value))
@@ -201,13 +202,14 @@ class toml:
                             line = f'{key[0]} = {value}\n'
                         else:
                             line = '{} = "{}"\n'.format(key[0], value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\t", "\\t")) 
-                        key=None
+                        key=[]
 
 
             if outfile:
                 outfile.write(line)
             line=''
             sline=''
+            iline=''
 
 
         infile[-1].close()
@@ -266,12 +268,12 @@ class toml:
     
     def getenv(self, key, default=None, file=None, subst=False, include=False):
         if isinstance(key, (list, tuple)):
-            return self._rw_toml('r', file or self.settings_file, key, default=default, subst=subst, include=include)
-        return self._rw_toml('r', file or self.settings_file, [key], subst=subst, default=default, include=include)
+            return self._rw_toml( 'r',  key,  file=file or self.settings_file, default=default, subst=subst, include=include)
+        return self._rw_toml(     'r', [key], file=file or self.settings_file, default=default, subst=subst, include=include)
 
 
     def setenv(self, key, value=None, file=None, subst=False):
-        self._rw_toml('w', file or self.settings_file, [key], value=value, subst=subst)
+        self._rw_toml(            'w', [key], value=value, file=file or self.settings_file, subst=subst)
 
 
     @classmethod
